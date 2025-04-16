@@ -1,0 +1,158 @@
+// 1. hibernate.cfg.xml (Configuration File)
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC 
+"-//Hibernate/Hibernate Configuration DTD 3.0//EN" 
+"http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+  <session-factory>
+    <!-- Database connection settings -->
+    <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+    <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/studentdb</property>
+    <property name="hibernate.connection.username">root</property>
+    <property name="hibernate.connection.password">yourpassword</property>
+
+    <!-- JDBC connection pool -->
+    <property name="connection.pool_size">10</property>
+
+    <!-- SQL dialect -->
+    <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
+
+    <!-- Show SQL in console -->
+    <property name="show_sql">true</property>
+
+    <!-- Automatically update schema -->
+    <property name="hbm2ddl.auto">update</property>
+
+    <!-- Entity Mapping -->
+    <mapping class="com.example.Student"/>
+  </session-factory>
+</hibernate-configuration>
+
+// 2. Student.java (Entity Class)
+package com.example;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "students")
+public class Student {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "age")
+    private int age;
+
+    // Constructors
+    public Student() {}
+    public Student(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    // Getters & Setters
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public int getAge() { return age; }
+    public void setAge(int age) { this.age = age; }
+
+    @Override
+    public String toString() {
+        return "Student{" + "id=" + id + ", name='" + name + '\'' + ", age=" + age + '}';
+    }
+}
+
+// 3. StudentDAO.java (CRUD Operations)
+package com.example;
+
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.cfg.Configuration;
+
+public class StudentDAO {
+    private static final SessionFactory factory = new Configuration().configure().buildSessionFactory();
+
+    // Create
+    public void addStudent(Student student) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        session.save(student);
+        tx.commit();
+        session.close();
+    }
+
+    // Read
+    public Student getStudent(int id) {
+        Session session = factory.openSession();
+        Student student = session.get(Student.class, id);
+        session.close();
+        return student;
+    }
+
+    // Update
+    public void updateStudent(Student student) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        session.update(student);
+        tx.commit();
+        session.close();
+    }
+
+    // Delete
+    public void deleteStudent(int id) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        Student student = session.get(Student.class, id);
+        if (student != null) {
+            session.delete(student);
+        }
+        tx.commit();
+        session.close();
+    }
+
+    public void shutdown() {
+        factory.close();
+    }
+}
+
+// 4. Main.java (Test the CRUD functionality)
+package com.example;
+
+public class Main {
+    public static void main(String[] args) {
+        StudentDAO dao = new StudentDAO();
+
+        // Create
+        Student student1 = new Student("Alice", 20);
+        dao.addStudent(student1);
+
+        // Read
+        Student retrieved = dao.getStudent(student1.getId());
+        System.out.println("Read: " + retrieved);
+
+        // Update
+        retrieved.setAge(22);
+        dao.updateStudent(retrieved);
+        System.out.println("Updated: " + dao.getStudent(retrieved.getId()));
+
+        // Delete
+        dao.deleteStudent(retrieved.getId());
+        System.out.println("Deleted. Try to read: " + dao.getStudent(retrieved.getId()));
+
+        // Shutdown
+        dao.shutdown();
+    }
+}
+
+//Database Setup (MySQL)
+CREATE DATABASE studentdb;
